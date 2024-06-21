@@ -1,29 +1,26 @@
 if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config()
+    require('dotenv').config();
 }
 
 const express = require('express');
 const app = express();
 const port = 3000;
-const bcrypt = require('bcrypt')
-const passport = require('passport')
-const flash = require('express-flash')
-const session = require('express-session')
-const methodOverride = require('method-override')
+const bcrypt = require('bcrypt');
+const passport = require('passport');
+const flash = require('express-flash');
+const session = require('express-session');
+const methodOverride = require('method-override');
+const mongoose = require('mongoose');
+const postController = require('./controlles/post.controller'); // Assurez-vous d'importer le contrôleur des posts
 
-const initializePassport = require('./passport-config')
+const initializePassport = require('./passport-config');
 initializePassport(
     passport, 
     email => users.find(user => user.email === email),
     id => users.find(user => user.id === id)
-)
+);
 
-const mongoose = require('mongoose');
-const connectDB = require('./config/db');
-// const dotenv = require("dotenv").config();
-
-
-// connexion à la DB (V2)
+// Connexion à la DB
 mongoose.connect("mongodb+srv://cremondndpoissy:Y5Ck5Q2DIYwvdKtO@projet3.fs2intx.mongodb.net/projet3", {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -38,64 +35,69 @@ mongoose.connect("mongodb+srv://cremondndpoissy:Y5Ck5Q2DIYwvdKtO@projet3.fs2intx
     console.error("Connexion échouée", error); 
 });
 
-// a supprimé
+const users = [];
 
-const users = []
-
-// 
-
-app.set('view-engine', 'ejs')
-app.use(express.urlencoded({ extended: false}))
-app.use(flash())
+app.set('view engine', 'ejs'); // Configuration du moteur de template ejs
+app.use(express.urlencoded({ extended: false }));
+app.use(flash());
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
-}))
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(methodOverride('_method'));
 
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(methodOverride('_method'))
+// Page d'accueil
+app.get('/', checkAuthenticated, postController.getPosts);
 
-app.get('/', checkAuthenticated, (req, res) =>{
-    res.render('index.ejs', { name : req.user.name})
-})
+// Créer un nouveau post
+app.post('/post', checkAuthenticated, postController.createPost); // Assurez-vous que createPost est bien défini dans post.controller.js
 
+// Routes d'authentification
 app.get('/login', checkNotAuthenticated, (req, res) => {
-    res.render('login.ejs')
-})
+    res.render('login.ejs');
+});
 
 app.post('/login', checkNotAuthenticated, passport.authenticate('local', {
     successRedirect: '/',
     failureRedirect: '/login',
     failureFlash: true
-}))
+}));
 
 app.get('/register', checkNotAuthenticated, (req, res) => {
-    res.render('register.ejs')
-})
+    res.render('register.ejs');
+});
 
 app.post('/register', checkNotAuthenticated, async (req, res) => {
-    try{
-        const hashedPassword = await bcrypt.hash(req.body.password, 9)
+    try {
+        const hashedPassword = await bcrypt.hash(req.body.password, 9);
         users.push({
             id: Date.now().toString(),
-            name : req.body.name,
-            email : req.body.email,
-            password : hashedPassword
-        })
-        res.redirect('/login')
+            name: req.body.name,
+            email: req.body.email,
+            password: hashedPassword
+        });
+        res.redirect('/login');
     } catch {
-        res.redirect('/register')
+        res.redirect('/register');
+        console.log("nono")
     }
-})
+});
 
 function checkAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
-        return next()
+        return next();
     }
+    res.redirect('/login');
+}
 
-    res.redirect('/login')
+function checkNotAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return res.redirect('/');
+    }
+    next();
 }
 
 app.delete('/logout', (req, res, next) => {
@@ -105,19 +107,14 @@ app.delete('/logout', (req, res, next) => {
     });
 });
 
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-function checkNotAuthenticated(req, res, next) {
-    if (req.isAuthenticated()) {
-        return res.redirect('/')
-    }
-    next()
-}
+// Routes des posts
+app.use('/post', require('./routes/post.routes'));
 
-// Midelware
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
-
-app.use("/post", require("./routes/post.routes"))
+module.exports = app;
 
 
 

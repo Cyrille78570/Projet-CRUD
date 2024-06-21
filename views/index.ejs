@@ -1,4 +1,71 @@
 <h1>Bonjour <%= name %></h1>
+
+<!-- Formulaire pour créer un nouveau post -->
+<form action="/post" method="POST" id="postForm">
+    <div>
+        <label for="message">Message</label>
+        <input type="text" id="message" name="message" required>
+    </div>
+    <div>
+        <label for="imageUrl">Image URL</label>
+        <input type="url" id="imageUrl" name="imageUrl">
+    </div>
+    <button type="submit">Publier</button>
+</form>
+
+<!-- Liste des posts -->
+<h2>Liste des posts</h2>
+<ul>
+    <% posts.forEach(post => { %>
+        <li>
+            <p><strong><%= post.author %>:</strong> <%= post.message %></p>
+            <% if (post.imageUrl) { %>
+                <img src="<%= post.imageUrl %>" alt="Image du post">
+            <% } %>
+            <% if (post.author === name) { %>
+                <form action="/post/edit/<%= post._id %>?_method=PUT" method="POST">
+                    <div>
+                        <label for="message">Message</label>
+                        <input type="text" id="message" name="message" required>
+                    </div>
+                    <div>
+                        <label for="imageUrl">Image URL</label>
+                        <input type="url" id="imageUrl" name="imageUrl">
+                    </div>
+                    <button type="submit">Modifier</button>
+                </form>
+                <form action="/post/<%= post._id %>?_method=DELETE" method="POST">
+                    <button type="submit">Supprimer</button>
+                </form>
+            <% } %>
+        </li>
+    <% }); %>
+</ul>
+
+<!-- Formulaire de déconnexion -->
 <form action="/logout?_method=DELETE" method="POST">
     <button type="submit">Déconnexion</button>
 </form>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // JavaScript client-side (utilisation d'AJAX pour soumettre le formulaire)
+    $('#postForm').submit(function(event) {
+        event.preventDefault();
+        const formData = $(this).serialize();
+        
+        $.ajax({
+            type: 'POST',
+            url: '/post',
+            data: formData,
+            success: function(response) {
+                // Rechargement de la page après succès pour afficher le nouveau post
+                window.location.reload();
+            },
+            error: function(error) {
+                console.error('Erreur lors de la création du post : ', error);
+                // Gérer les erreurs si nécessaire
+            }
+        });
+    });
+</script>
