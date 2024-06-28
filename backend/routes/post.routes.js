@@ -1,18 +1,35 @@
 const express = require('express');
-const { setPosts, getPosts, editPost, deletePost, likePost, dislikePost } = require('../controlles/post.controller');
-
 const router = express.Router();
+const postController = require('../controlles/post.controller'); 
+const PostModel = require('../models/post.model');
 
-router.get('/', getPosts);
+// Middleware
+const isAuthorOrAdmin = async (req, res, next) => {
+    const postId = req.params.id;
+    const adminId = "66754a66e0bba87ca931b2eb"; 
 
-router.post('/', setPosts);
+    try {
+        const post = await PostModel.findById(postId);
+        if (!post) {
+            return res.status(404).json({ error: 'Post non trouvé' });
+        }
 
-router.put('/:id', editPost);
+        if (req.user._id.toString() !== adminId && post.author !== req.user.name) {
+            return res.status(403).json({ error: 'Accès refusé. Vous n\'êtes pas autorisé à effectuer cette action.' });
+        }
 
-router.delete("/:id", deletePost);
+        next();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
-router.patch("/like-post/:id", likePost)
+// Routes
+router.post('/', postController.createPost);
+router.delete('/:id', isAuthorOrAdmin, postController.deletePost);
+router.put('/edit/:id', isAuthorOrAdmin, postController.editPost); 
+router.patch('/like-post/:id', postController.likePost);
+router.patch('/dislike-post/:id', postController.dislikePost);
 
-router.patch("/like-post/:id", dislikePost)
 
 module.exports = router;

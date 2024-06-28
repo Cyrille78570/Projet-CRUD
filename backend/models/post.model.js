@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const postSchema = mongoose.Schema(
+const postSchema = new mongoose.Schema(
     {
         message: {
             type: String,
@@ -10,13 +10,21 @@ const postSchema = mongoose.Schema(
             type: String,
             required: true,
         },
-        likers: {
-            type: [String]
-        }
+        imageUrl: {
+            type: String,
+        },
+        likers: { 
+            type: [String], 
+            default: []
+        },
+        dislikers: { 
+            type: [String],
+            default: [] 
+        },
     },
     {
-        timestamps : true,
+        timestamps: true,
     }
-)
+);
 
-module.exports = mongoose.model('post', postSchema);
+module.exports = mongoose.model('Post', postSchema);
