@@ -13,9 +13,14 @@ const postSchema = new mongoose.Schema(
         imageUrl: {
             type: String,
         },
-        likers: {
+        likers: { 
+            type: [String], 
+            default: []
+        },
+        dislikers: { 
             type: [String],
-        }
+            default: [] 
+        },
     },
     {
         timestamps: true,

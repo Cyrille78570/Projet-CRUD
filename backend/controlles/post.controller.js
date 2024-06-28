@@ -3,29 +3,29 @@ const PostModel = require('../models/post.model');
 // Récupérer tous les posts
 module.exports.getPosts = async (req, res) => {
     try {
-        const posts = await PostModel.find().sort({ createdAt: -1 }); 
-        res.render('index', { name: req.user.name, posts: posts }); 
+        const posts = await PostModel.find().sort({ createdAt: -1 });
+        res.render('index', { name: req.user.name, userId: req.user._id, posts: posts });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-// Fonction pour créer un nouveau post
+// Créer un nouveau post
 module.exports.createPost = async (req, res) => {
     try {
         const { message, imageUrl } = req.body;
         const newPost = await PostModel.create({
             message,
-            author: req.user.name, // Utilisation du nom de l'utilisateur connecté comme auteur
+            author: req.user.name, 
             imageUrl
         });
-        res.redirect('/'); // Redirection vers la page d'accueil après création du post
+        res.redirect('/'); 
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
 
-// Edit an existing post
+// Editer un post
 module.exports.editPost = async (req, res) => {
     const { message, author, imageUrl } = req.body;
     console.log('Je rentre dans le game')
@@ -50,33 +50,36 @@ module.exports.editPost = async (req, res) => {
     }
 };
 
-// Fonction pour supprimer un post
+// Supprimer un post
 module.exports.deletePost = async (req, res) => {
     const postId = req.params.id;
+
     try {
         const post = await PostModel.findById(postId);
+
         if (!post) {
             return res.status(404).json({ error: 'Post non trouvé' });
         }
 
-        // Vérifiez si l'utilisateur connecté est l'auteur du post
-        if (post.author !== req.user.name) {
+        if (post.author.toString() === req.user.name.toString() || req.user._id.toString() === '66754a66e0bba87ca931b2eb') {
+            await post.remove();
+            return res.redirect('/');
+        } else {
             return res.status(403).json({ error: 'Accès refusé. Vous n\'êtes pas l\'auteur de ce post.' });
         }
-
-        await post.remove();
-        res.redirect('/');
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Erreur lors de la suppression du post :', error);
+        return res.status(500).json({ error: error.message });
     }
 };
 
-// Like a post
+// Aimer un post
 module.exports.likePost = async (req, res) => {
+    console.log('Je suis là')
     try {
         const post = await PostModel.findByIdAndUpdate(
             req.params.id,
-            { $addToSet: { likers: req.body.userId } },
+            { $addToSet: { likers: req.body.userId }, $pull: { dislikers: req.body.userId } },
             { new: true }
         );
         res.status(200).json(post);
@@ -85,12 +88,12 @@ module.exports.likePost = async (req, res) => {
     }
 };
 
-// Dislike a post
+// Ne pas aimer un post
 module.exports.dislikePost = async (req, res) => {
     try {
         const post = await PostModel.findByIdAndUpdate(
             req.params.id,
-            { $pull: { likers: req.body.userId } },
+            { $addToSet: { dislikers: req.body.userId }, $pull: { likers: req.body.userId } },
             { new: true }
         );
         res.status(200).json(post);

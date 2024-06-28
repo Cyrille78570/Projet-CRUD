@@ -11,7 +11,7 @@ const flash = require('express-flash');
 const session = require('express-session');
 const methodOverride = require('method-override');
 const mongoose = require('mongoose');
-const postController = require('./controlles/post.controller'); // Assurez-vous d'importer le contrôleur des posts
+const postController = require('./controlles/post.controller'); 
 
 const initializePassport = require('./passport-config');
 initializePassport(
@@ -35,15 +35,16 @@ mongoose.connect("mongodb+srv://cremondndpoissy:Y5Ck5Q2DIYwvdKtO@projet3.fs2intx
     console.error("Connexion échouée", error); 
 });
 
-const users = [];
+const User = require('./models/user.model'); 
 
-app.set('view engine', 'ejs'); // Configuration du moteur de template ejs
+app.set('view engine', 'ejs'); 
 app.use(express.urlencoded({ extended: false }));
 app.use(flash());
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: { secure: false }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -53,7 +54,7 @@ app.use(methodOverride('_method'));
 app.get('/', checkAuthenticated, postController.getPosts);
 
 // Créer un nouveau post
-app.post('/post', checkAuthenticated, postController.createPost); // Assurez-vous que createPost est bien défini dans post.controller.js
+app.post('/post', checkAuthenticated, postController.createPost); 
 
 // Routes d'authentification
 app.get('/login', checkNotAuthenticated, (req, res) => {
@@ -73,16 +74,16 @@ app.get('/register', checkNotAuthenticated, (req, res) => {
 app.post('/register', checkNotAuthenticated, async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(req.body.password, 9);
-        users.push({
-            id: Date.now().toString(),
+        const newUser = new User({
             name: req.body.name,
             email: req.body.email,
             password: hashedPassword
         });
+        await newUser.save();
         res.redirect('/login');
-    } catch {
+    } catch (error) {
+        console.error('Erreur lors de l\'enregistrement :', error);
         res.redirect('/register');
-        console.log("nono")
     }
 });
 
